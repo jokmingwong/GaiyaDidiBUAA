@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import pymysql.cursors
 import sys
+import time as TIME
 
 # 道路数据
 max_lat = 34.2803
@@ -18,6 +19,8 @@ selected = ['primary', 'secondary','primary_link', 'secondary_link', 'unclassifi
 
 
 # 画图初始化
+frameNum = 120
+numOfPatch = 1
 fig, ax = plt.subplots()
 xdata,ydata=[],[]
 ln, = plt.plot([], [], 'ro',animated=True)
@@ -26,17 +29,20 @@ node_id_list=[]
 way_dic = {}
 
 def update(frame):
-    xdata.append(node_dic[node_id_list[frame]][0])
-    ydata.append(node_dic[node_id_list[frame]][1])
+    maxi = (frame + 1) * numOfPatch if (frame + 1) * numOfPatch <= len(way_id_list) else len(way_id_list)
+    for i in range(frame * numOfPatch, maxi):
+        xdata.extend(way_dic[way_id_list[i]][0])
+        ydata.extend(way_dic[way_id_list[i]][1])
     ln.set_data(xdata,ydata)
+    print(TIME.asctime(TIME.localtime(TIME.time())),"frame: ", frame)
     return ln,
 
 def init():
-    ax.set_xlim(min_lng,max_lng)
-    ax.set_ylim(min_lat, max_lat)
+    ax.set_xlim(min_x, max_x)
+    ax.set_ylim(min_y, max_y)
     return ln,
 
-
+print(TIME.asctime(TIME.localtime(TIME.time())), " 初始化完毕")
 
 
 
@@ -57,6 +63,9 @@ for node in nodelist:
         node_dic[node_id] = (x, y)
         node_id_list.append(node_id)
 
+print(TIME.asctime(TIME.localtime(TIME.time())), " 添加node完毕")
+
+way_id_list = []
 
 for way in waylist:
     taglist = way.getElementsByTagName('tag')
@@ -86,16 +95,24 @@ for way in waylist:
                 way_dic[way_id] = [[], []]
                 way_dic[way_id][0] = wayndx
                 way_dic[way_id][1] = wayndy
+                way_id_list.append(way_id)
 
 
+print(TIME.asctime(TIME.localtime(TIME.time())), " 道路信息添加完毕")
+print(TIME.asctime(TIME.localtime(TIME.time())), " len(way_dic)=", len(way_dic))
+print(way_dic[way_id_list[0]])
 # 画出道路图
 '''
 for w in way_dic:
     im=plt.plot(way_dic[w][0], way_dic[w][1], 'r')
     plt.scatter(way_dic[w][0], way_dic[w][1],c='yellow')
 '''
-
-anim = animation.FuncAnimation(fig, update, frames=len(node_id_list),interval=20,init_func=init,blit=True)
+numOfPatch = int(len(way_id_list) / frameNum)
+anim = animation.FuncAnimation(fig, update, frames=frameNum,interval=20,init_func=init,blit=True)
 # plt.show()
 
-anim.save('road_animation.gif',writer='Pillow',fps=20)
+animWriter = animation.PillowWriter(fps=20)
+print(TIME.asctime(TIME.localtime(TIME.time())), " len(way_id_list)=", len(way_id_list))
+
+
+anim.save('road_animation.gif',writer=animWriter)
